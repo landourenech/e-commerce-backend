@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["@prisma/client"],
+    "baseUrl": "./src",
+    "paths": {
+      "@prisma/client": ["../node_modules/.pnpm/@prisma+client@5.11.0_prisma@5.11.0/node_modules/@prisma/client"]
+    }
+  }
+}
