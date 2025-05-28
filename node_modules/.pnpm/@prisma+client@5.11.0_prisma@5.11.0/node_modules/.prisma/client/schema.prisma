@@ -18,21 +18,23 @@ enum PaymentStatus {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  role          UserRole  @default(CLIENT)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  orders        Order[]
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      UserRole @default(CLIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders    Order[]
 }
 
 model Category {
   id          String    @id @default(cuid())
   name        String
   description String?
-  products    Product[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  products    Product[]
 }
 
 model Product {
@@ -41,32 +43,45 @@ model Product {
   description String
   price       Float
   imageUrl    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   categoryId  String
   category    Category  @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  userId       String
-  user         User        @relation(fields: [userId], references: [id])
-  total        Float
-  paymentStatus PaymentStatus @default(PENDING)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  orderItems   OrderItem[]
+  id            String         @id @default(cuid())
+  userId        String?        // ID de l'utilisateur connecté
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestEmail    String?        // Email du client anonyme
+  guestName     String?        // Nom du client anonyme
+  guestPhone    String?        // Numéro de téléphone du client anonyme
+  total         Float
+  paymentStatus PaymentStatus  @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  orderItems    OrderItem[]
+
+  @@index([userId])
+  @@index([guestEmail])
+
+  @@unique([userId, guestEmail])
+
+  @@map("orders")
 }
 
 model OrderItem {
   id        String   @id @default(cuid())
   orderId   String
-  order     Order    @relation(fields: [orderId], references: [id])
   productId String
-  product   Product  @relation(fields: [productId], references: [id])
   quantity  Int
   price     Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
 }

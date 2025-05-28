@@ -45,7 +45,7 @@ app.use(express.json());
 app.post('/api/auth/register', registerHandler);
 app.post('/api/auth/login', loginHandler);
 
-app.post('/api/orders', authMiddleware, createOrder);
+app.post('/api/orders', createOrder);
 app.get('/api/orders/:userId', authMiddleware, getUserOrders);
 
 // Routes de test

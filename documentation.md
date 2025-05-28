@@ -86,15 +86,29 @@
 
 ## Routes de Commande
 
+### Commandes Anonymes
+
+Les utilisateurs non connectés peuvent créer des commandes en fournissant leurs informations de contact. Les commandes anonymes nécessitent les informations suivantes :
+
+- `guestEmail` : Email du client (obligatoire)
+- `guestName` : Nom du client (obligatoire)
+- `guestPhone` : Numéro de téléphone du client (obligatoire)
+
+Ces informations seront utilisées pour le suivi de la commande et la communication concernant le paiement.
+
 ### Création de commande
 
 - **Méthode** : POST
 - **URL** : `/api/orders`
-- **Description** : Création d'une nouvelle commande
-- **Headers** : `Authorization: Bearer <token>`
+- **Description** : Création d'une nouvelle commande (pour les utilisateurs connectés ou anonymes)
+- **Headers** : `Authorization: Bearer <token>` (optionnel pour les commandes anonymes)
 - **Body** :
 ```json
 {
+  "userId": "string" | null,  // ID de l'utilisateur connecté (optionnel)
+  "guestEmail": "string",     // Email du client (obligatoire pour les commandes anonymes)
+  "guestName": "string",      // Nom du client (obligatoire pour les commandes anonymes)
+  "guestPhone": "string",     // Numéro de téléphone du client (obligatoire pour les commandes anonymes)
   "items": [
     {
       "productId": "string",

@@ -2,8 +2,7 @@
  * Service de gestion des paiements pour l'application e-commerce
  * Utilise WhatsApp comme méthode de paiement alternative
  */
-import { PrismaClient } from '@prisma/client';
-import { Order } from '@prisma/client';
+import { PrismaClient, Order } from '@prisma/client';
 import dotenv from 'dotenv';
 
 // Charger les variables d'environnement
@@ -31,9 +30,15 @@ export class PaymentService {
    * @param order La commande pour laquelle générer le lien
    * @returns Le lien WhatsApp formaté
    */
-  async generateWhatsAppPaymentLink(order: Order): Promise<string> {
+  async generateWhatsAppPaymentLink(order: any): Promise<string> {
     const message = encodeURIComponent(`Bonjour, je souhaite payer ma commande #${order.id} de ${order.total} FCFA`);
     const whatsappLink = `https://wa.me/${PaymentService.WHATSAPP_PHONE}?text=${message}`;
+    
+    // Pour les commandes anonymes, ajouter les informations du client
+    if (!order.userId && order.guestName && order.guestPhone) {
+      const guestInfo = encodeURIComponent(`\nClient: ${order.guestName}\nTéléphone: ${order.guestPhone}`);
+      return whatsappLink + guestInfo;
+    }
     
     return whatsappLink;
   }

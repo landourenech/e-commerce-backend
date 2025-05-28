@@ -1,66 +1,93 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { PaymentService } from '../services/payment.service';
-import { RequestWithUser, OrderItemInput } from '../types';
+import { OrderInput, OrderItemInput } from '../types/order';
 
-let prisma: PrismaClient;
-
-try {
-  prisma = new PrismaClient();
-  console.log('Prisma client initialized successfully');
-} catch (error) {
-  console.error('Error initializing Prisma client:', error);
-  throw error;
-}
-
+const prisma = new PrismaClient();
 const paymentService = new PaymentService();
 
-export const createOrder = async (req: RequestWithUser, res: Response) => {
+export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Request body:', req.body);
-    console.log('User:', req.user);
-    
-    const { items } = req.body as { items: OrderItemInput[] };
-    const userId = req.user.uid;
-    
-    console.log('Creating order with userId:', userId);
-    console.log('Items:', items);
-    
-    // Calculer le total
-    const total = items.reduce((acc: number, item: OrderItemInput) => acc + (item.price * item.quantity), 0);
+    const orderData = req.body as OrderInput;
 
-    // Créer la commande dans la base de données
+    console.log('Received order data:', orderData);
+
+    // Vérification des champs obligatoires pour les commandes anonymes
+    const isAnonymous =
+      !orderData.userId &&
+      (!orderData.guestEmail || !orderData.guestName || !orderData.guestPhone);
+
+    if (isAnonymous) {
+      res.status(400).json({
+        error:
+          'Pour les commandes anonymes, les informations du client (email, nom, téléphone) sont obligatoires',
+      });
+      return;
+    }
+
+    // Si l'utilisateur est authentifié via authMiddleware, utiliser son ID
+    const userId = req.user?.uid || orderData.userId;
+
+    // Calcul du total
+    const total = orderData.items.reduce(
+      (acc: number, item: OrderItemInput) =>
+        acc + item.price * item.quantity,
+      0
+    );
+
+    // Création de la commande
     const order = await prisma.order.create({
       data: {
-        userId,
+        ...(userId ? { userId } : {}),
+        ...(orderData.guestEmail ? { guestEmail: orderData.guestEmail } : {}),
+        ...(orderData.guestName ? { guestName: orderData.guestName } : {}),
+        ...(orderData.guestPhone ? { guestPhone: orderData.guestPhone } : {}),
         total,
         orderItems: {
-          create: items.map((item: OrderItemInput) => ({
+          create: orderData.items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: item.price
-          }))
-        }
-      }
+            price: item.price,
+          })),
+        },
+      } as any,
+      include: {
+        orderItems: true,
+      },
     });
 
-    console.log('Order created successfully:', order);
-    res.json(order);
+    console.log('Commande créée avec succès:', order);
+
+    res.status(201).json({
+      message: 'Commande créée avec succès',
+      order,
+    });
+    return;
   } catch (error) {
-    console.error('Error creating order:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Erreur lors de la création de la commande:', error);
+    return res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 };
 
-export const getUserOrders = async (req: Request, res: Response) => {
+export const getUserOrders = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
+
+    if (!userId) {
+      res.status(400).json({ error: 'userId est requis dans les paramètres' });
+      return;
+    }
+
     const orders = await prisma.order.findMany({
-      where: { userId }
+      where: { userId },
+      include: { orderItems: true },
     });
 
     res.json(orders);
+    return;
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Erreur lors de la récupération des commandes:', error);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
+    return;
   }
 };
